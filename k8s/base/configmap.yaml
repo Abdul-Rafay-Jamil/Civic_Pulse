@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: civicpulse-config
+  namespace: civicpulse
+data:
+  TRIAGE_PROVIDER: "rules"
+  LLM_MODEL: "llama-3.1-8b-instant"
+  RATE_LIMIT_REQUESTS: "30"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+  LOG_LEVEL: "INFO"
+  REDIS_URL: "redis://redis:6379/0"
+  DATABASE_URL: "postgresql+asyncpg://civicpulse:$(POSTGRES_PASSWORD)@postgres:5432/civicpulse"
