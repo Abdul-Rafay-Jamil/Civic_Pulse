@@ -1,0 +1,151 @@
+# CivicPulse — Development Docker Compose
+# Two networks: edge (frontend ↔ backend) and internal (backend ↔ db ↔ cache)
+# Three named volumes: pgdata, redisdata, ollama_models
+
+services:
+  # ── Frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      - API_BASE_URL=http://backend:8000
+    networks:
+      - edge
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://civicpulse:civicpulse@database:5432/civicpulse}
+      - REDIS_URL=${REDIS_URL:-redis://cache:6379/0}
+      - TRIAGE_PROVIDER=${TRIAGE_PROVIDER:-rules}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.1-8b-instant}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-30}
+      - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - edge
+      - internal
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.50"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    volumes:
+      # Dev bind mount — hot reload. Right in dev, wrong in prod.
+      - ./backend/app:/app/app:ro
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────
+  database:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-civicpulse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-civicpulse}
+      - POSTGRES_DB=${POSTGRES_DB:-civicpulse}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-civicpulse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # No published port — database should not be accessible from outside
+
+  # ── Redis ────────────────────────────────────────────────────────────
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    # No published port — cache should not be accessible from outside
+
+  # ── Ollama (optional, for offline AI triage) ─────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+    profiles:
+      - ollama
+
+# ── Networks ─────────────────────────────────────────────────────────
+networks:
+  edge:
+    # frontend ↔ backend
+    driver: bridge
+  internal:
+    # backend ↔ database ↔ cache
+    driver: bridge
+    internal: true  # no route to the outside world
+
+# ── Volumes ──────────────────────────────────────────────────────────
+volumes:
+  pgdata:       # PostgreSQL data directory — the durable one
+  redisdata:    # AOF persistence — justified in ENGINEERING-NOTES.md
+  ollama_models: # Model weights, so you do not re-pull 800 MB on every up
