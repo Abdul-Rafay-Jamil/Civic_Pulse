@@ -1,5 +1,12 @@
 # Engineering Notes
 
+
+### State Machine Transition Table
+The explicit transition table in `backend/app/models.py` maps (current_status, target_status)
+pairs to boolean validity. Invalid transitions return 409 Conflict with a message naming the
+attempted transition, avoiding brittle if-else chains. The transition matrix ensures terminal
+states (resolved, rejected) cannot be re-opened.
+
 Answers to the eight questions from §5.2, with references to actual files and lines.
 
 ---
