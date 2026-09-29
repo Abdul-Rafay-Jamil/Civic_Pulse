@@ -54,7 +54,7 @@ FALLBACK_COUNTER = Counter(
 
 
 @router.get("/health")
-async def health() -> dict:
+async def health() -> dict[str, str]:
     """Liveness probe. Process is alive. Must NOT touch the database.
 
     Kubernetes uses this for liveness — a failing liveness probe restarts the pod.

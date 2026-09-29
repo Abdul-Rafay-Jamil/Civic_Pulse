@@ -1,6 +1,7 @@
 """Domain models and enums for CivicPulse."""
 
 import enum
+from typing import Any
 import uuid
 from datetime import datetime
 
@@ -116,14 +117,14 @@ class ProviderInfo(BaseModel):
     """Active triage provider information."""
 
     active_provider: str
-    recent_outcomes: list[dict]
+    recent_outcomes: list[dict[str, Any]]
 
 
 class HealthResponse(BaseModel):
     """Health/readiness check response."""
 
     status: str
-    details: dict[str, str] = {}
+    details: dict[str, str] = Field(default_factory=dict)
 
 
 class ValidationErrorDetail(BaseModel):
@@ -137,4 +138,4 @@ class ErrorResponse(BaseModel):
     """Standard error response body."""
 
     detail: str
-    errors: list[ValidationErrorDetail] = []
+    errors: list[ValidationErrorDetail] = Field(default_factory=list)

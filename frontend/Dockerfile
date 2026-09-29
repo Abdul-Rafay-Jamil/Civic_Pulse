@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Cache-friendly COPY order: package files before source
 COPY package.json package-lock.json* ./
-RUN npm ci --no-audit
+RUN if [ -f package-lock.json ]; then npm ci --no-audit; else npm install --no-audit; fi
 
 # Copy source and build
 COPY . .

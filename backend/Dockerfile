@@ -6,6 +6,7 @@ WORKDIR /build
 
 # Cache-friendly COPY order: requirements before source
 COPY pyproject.toml ./
+COPY app/ ./app/
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Stage 2: Runtime — slim image, non-root user

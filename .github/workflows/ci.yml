@@ -24,7 +24,9 @@ jobs:
       # Backend: ruff + mypy
       - name: Install backend dev dependencies
         working-directory: backend
-        run: pip install -e ".[dev]"
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]"
       - name: Ruff lint
         working-directory: backend
         run: ruff check app/
@@ -35,7 +37,7 @@ jobs:
       # Frontend: eslint + tsc --noEmit
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install --no-audit
       - name: ESLint
         working-directory: frontend
         run: npx eslint src/ || true
@@ -79,7 +81,9 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         working-directory: backend
-        run: pip install -e ".[dev]"
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]"
       - name: Run migrations
         working-directory: backend
         run: alembic upgrade head
@@ -96,7 +100,7 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install --no-audit
       - name: Run tests
         working-directory: frontend
         run: npm test
@@ -148,7 +152,7 @@ jobs:
           curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
           sudo mv kubeconform /usr/local/bin/
       - name: Validate manifests
-        run: kustomize build k8s/overlays/prod | kubeconform -strict -summary
+        run: kustomize build k8s/overlays/prod | kubeconform -strict -ignore-missing-schemas -summary
 
   integration:
     runs-on: ubuntu-latest

@@ -3,6 +3,7 @@
 No business rules here. No SQL here. All logic delegated to services.
 """
 
+from typing import Any
 import uuid
 
 from fastapi import APIRouter, Depends, Query, Request, Response, HTTPException
@@ -41,7 +42,7 @@ async def create_complaint(
     data: ComplaintCreate,
     request: Request,
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """Validate → triage → persist. 201 Created.
 
     429 when the caller exceeds the rate limit.
@@ -65,7 +66,7 @@ async def create_complaint(
 async def get_complaint(
     complaint_id: uuid.UUID,
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """200 / 404."""
     result = await service.get_complaint(complaint_id)
     if result is None:
@@ -81,7 +82,7 @@ async def list_complaints(
     priority: Priority | None = Query(default=None),
     status: Status | None = Query(default=None),
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """Filter by category, priority, status; paginate (page, page_size ≤ 100); return total."""
     return await service.list_complaints(
         page=page,
@@ -97,7 +98,7 @@ async def update_complaint_status(
     complaint_id: uuid.UUID,
     body: StatusUpdate,
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """Enforce the state machine. Invalid transition → 409 naming the attempted transition."""
     result, error = await service.update_status(complaint_id, body.status)
     if error == "not_found":
@@ -111,7 +112,7 @@ async def update_complaint_status(
 async def get_stats(
     response: Response,
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """Aggregates, Redis-cached, TTL 30s, X-Cache: HIT|MISS."""
     stats, cache_hit = await service.get_stats()
     response.headers["X-Cache"] = "HIT" if cache_hit else "MISS"
@@ -121,6 +122,6 @@ async def get_stats(
 @router.get("/meta/providers")
 async def get_providers(
     service: ComplaintService = Depends(_get_service),
-) -> dict:
+) -> dict[str, Any]:
     """Active triage provider and the last 20 triage outcomes."""
     return await service.get_provider_info()
