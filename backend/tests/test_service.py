@@ -54,7 +54,7 @@ class TestTriageFallback:
         mock_complaint.updated_at = MagicMock()
         mock_complaint.updated_at.isoformat.return_value = "2026-01-01T00:00:00"
 
-        with patch.object(service._repo, "create", return_value=mock_complaint):
+        with patch.object(service._repo, "create", return_value=mock_complaint) as mock_create:
             with patch("app.services.complaint_service.get_cached_triage", return_value=None):
                 with patch("app.services.complaint_service.set_cached_triage"):
                     with patch("app.services.complaint_service.invalidate_stats_cache"):
@@ -65,11 +65,11 @@ class TestTriageFallback:
 
                         result = await service.create_complaint(data)
 
-        # Verify the result indicates fallback was used
-        # The service should have called the repo with triaged_by="rules:fallback"
-        create_call = service._repo.create.call_args
-        assert create_call is not None
-        assert create_call.kwargs["triaged_by"] == "rules:fallback"
+            # Verify the result indicates fallback was used
+            # The service should have called the repo with triaged_by="rules:fallback"
+            assert mock_create.call_args is not None
+            assert mock_create.call_args.kwargs["triaged_by"] == "rules:fallback"
+            assert result["triaged_by"] == "rules:fallback"
 
     @pytest.mark.asyncio
     async def test_triage_with_resilience_timeout(self):

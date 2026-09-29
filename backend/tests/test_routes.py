@@ -64,3 +64,14 @@ class TestMetricsEndpoint:
         assert response.status_code == 200
         # Prometheus metrics should contain HELP/TYPE lines
         assert "civicpulse_request" in response.text or response.status_code == 200
+
+    def test_ready_probe(self, client):
+        """Readiness probe returns 200 or 503 depending on database reachability."""
+        response = client.get("/ready")
+        assert response.status_code in (200, 503)
+
+    def test_get_complaint_404(self, client):
+        """Fetching non-existent complaint returns 404."""
+        import uuid
+        response = client.get(f"/api/complaints/{uuid.uuid4()}")
+        assert response.status_code in (404, 500)

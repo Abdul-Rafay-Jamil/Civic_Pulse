@@ -15,7 +15,7 @@ _CATEGORY_KEYWORDS: dict[Category, list[str]] = {
     Category.ELECTRICITY: [
         "electricity", "bijli", "power", "transformer", "wire", "cable",
         "outage", "blackout", "voltage", "meter", "pole", "load shedding",
-        "short circuit", "electric", "light",
+        "short circuit", "electric",
     ],
     Category.SANITATION: [
         "garbage", "kachra", "waste", "trash", "sanitation", "sweeper",
@@ -29,7 +29,7 @@ _CATEGORY_KEYWORDS: dict[Category, list[str]] = {
     ],
     Category.STREETLIGHTS: [
         "streetlight", "street light", "lamp", "bulb", "dark", "lighting",
-        "pole light", "park light", "night", "broken light",
+        "pole light", "park light", "broken light",
     ],
 }
 
@@ -82,7 +82,7 @@ class RuleBasedTriage:
         """Find the best-matching category by keyword count."""
         scores: dict[Category, int] = {}
         for cat, keywords in _CATEGORY_KEYWORDS.items():
-            score = sum(1 for kw in keywords if kw in text)
+            score = sum(1 for kw in keywords if re.search(r"\b" + re.escape(kw) + r"\b", text))
             if score > 0:
                 scores[cat] = score
 
@@ -92,8 +92,8 @@ class RuleBasedTriage:
 
     def _match_priority(self, text: str) -> Priority:
         """Determine priority from urgency keywords."""
-        high_hits = sum(1 for kw in _HIGH_PRIORITY_KEYWORDS if kw in text)
-        low_hits = sum(1 for kw in _LOW_PRIORITY_KEYWORDS if kw in text)
+        high_hits = sum(1 for kw in _HIGH_PRIORITY_KEYWORDS if re.search(r"\b" + re.escape(kw) + r"\b", text))
+        low_hits = sum(1 for kw in _LOW_PRIORITY_KEYWORDS if re.search(r"\b" + re.escape(kw) + r"\b", text))
 
         if high_hits > low_hits:
             return Priority.HIGH
