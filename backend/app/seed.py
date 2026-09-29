@@ -8,7 +8,7 @@ import asyncio
 import uuid
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -325,7 +325,7 @@ async def seed_database(database_url: str | None = None) -> None:
             if existing.scalar_one_or_none() is not None:
                 continue
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             complaint = Complaint(
                 id=seed_id,
                 text=data["text"],

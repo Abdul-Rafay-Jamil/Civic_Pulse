@@ -1,7 +1,7 @@
 """Complaint repository — persistence layer. All SQL lives here."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select, update
@@ -41,8 +41,8 @@ class ComplaintRepository:
             ai_summary=ai_summary,
             triaged_by=triaged_by,
             triage_latency_ms=triage_latency_ms,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         self._session.add(complaint)
         await self._session.flush()
@@ -98,7 +98,7 @@ class ComplaintRepository:
         self, complaint_id: uuid.UUID, new_status: Status
     ) -> Complaint | None:
         """Update the status of a complaint. Returns the updated complaint or None."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         await self._session.execute(
             update(Complaint)
             .where(Complaint.id == complaint_id)

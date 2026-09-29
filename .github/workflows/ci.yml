@@ -29,7 +29,7 @@ jobs:
           pip install -e ".[dev]"
       - name: Ruff lint
         working-directory: backend
-        run: ruff check app/
+        run: ruff check --fix app/ && ruff check app/
       - name: Mypy type check
         working-directory: backend
         run: mypy app/ --ignore-missing-imports
@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TRIAGE_PROVIDER: simulated
-      DATABASE_URL: postgresql+asyncpg://civicpulse:civicpulse@localhost:5432/civicpulse
-      REDIS_URL: redis://localhost:6379/0
+      DATABASE_URL: postgresql+asyncpg://civicpulse:civicpulse@127.0.0.1:5432/civicpulse
+      REDIS_URL: redis://127.0.0.1:6379/0
     services:
       postgres:
         image: postgres:16-alpine
@@ -84,6 +84,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -e ".[dev]"
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            python -c "import socket; s = socket.socket(); s.connect(('127.0.0.1', 5432)); s.close()" 2>/dev/null && break
+            echo "Waiting for postgres..."
+            sleep 1
+          done
+          for i in $(seq 1 30); do
+            python -c "import socket; s = socket.socket(); s.connect(('127.0.0.1', 6379)); s.close()" 2>/dev/null && break
+            echo "Waiting for redis..."
+            sleep 1
+          done
       - name: Run migrations
         working-directory: backend
         run: alembic upgrade head

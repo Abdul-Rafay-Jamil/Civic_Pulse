@@ -12,8 +12,8 @@ from httpx import ASGITransport, AsyncClient
 
 # Set test environment before any app imports (use setdefault to preserve CI env vars)
 os.environ.setdefault("TRIAGE_PROVIDER", "simulated")
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://civicpulse:civicpulse@localhost:5432/civicpulse")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://civicpulse:civicpulse@127.0.0.1:5432/civicpulse")
+os.environ.setdefault("REDIS_URL", "redis://127.0.0.1:6379/0")
 
 from app.main import app
 from app.providers.triage.rules import RuleBasedTriage
