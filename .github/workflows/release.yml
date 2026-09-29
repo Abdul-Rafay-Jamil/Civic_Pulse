@@ -23,9 +23,10 @@ jobs:
 
       - name: Build and push with semver tags
         run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           TAG=${GITHUB_REF#refs/tags/}
-          BACKEND=ghcr.io/${{ github.repository }}/backend
-          FRONTEND=ghcr.io/${{ github.repository }}/frontend
+          BACKEND="ghcr.io/${REPO_LOWER}/backend"
+          FRONTEND="ghcr.io/${REPO_LOWER}/frontend"
 
           docker build -t $BACKEND:$TAG -t $BACKEND:latest ./backend
           docker push $BACKEND:$TAG

@@ -87,7 +87,8 @@ jobs:
       - name: Build and push backend
         id: push-backend
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/backend
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${REPO_LOWER}/backend"
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./backend
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
@@ -97,7 +98,8 @@ jobs:
       - name: Build and push frontend
         id: push-frontend
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/frontend
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${REPO_LOWER}/frontend"
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./frontend
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
@@ -106,9 +108,10 @@ jobs:
 
       - name: Generate SBOM
         run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-          syft ghcr.io/${{ github.repository }}/backend:${{ github.sha }} -o spdx-json > backend-sbom.json || true
-          syft ghcr.io/${{ github.repository }}/frontend:${{ github.sha }} -o spdx-json > frontend-sbom.json || true
+          syft ghcr.io/${REPO_LOWER}/backend:${{ github.sha }} -o spdx-json > backend-sbom.json || true
+          syft ghcr.io/${REPO_LOWER}/frontend:${{ github.sha }} -o spdx-json > frontend-sbom.json || true
 
   deploy-k8s:
     runs-on: ubuntu-latest
@@ -128,10 +131,11 @@ jobs:
 
       - name: Deploy with SHA tag
         run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           cd k8s/overlays/prod
           kustomize edit set image \
-            ghcr.io/civicpulse/backend=ghcr.io/${{ github.repository }}/backend:${{ github.sha }} \
-            ghcr.io/civicpulse/frontend=ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+            ghcr.io/civicpulse/backend=ghcr.io/${REPO_LOWER}/backend:${{ github.sha }} \
+            ghcr.io/civicpulse/frontend=ghcr.io/${REPO_LOWER}/frontend:${{ github.sha }}
           kustomize build . | kubectl apply -f -
 
       - name: Wait for rollout
