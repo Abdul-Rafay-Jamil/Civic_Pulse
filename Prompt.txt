@@ -1,0 +1,728 @@
+# ROLE
+
+You are the primary software engineer responsible for implementing the project described in the attached assignment PDF.
+
+The attached PDF is the **source of truth** for the assignment. Read it completely before writing code.
+
+Your job is to build the project as a complete, working repository that satisfies the assignment requirements and rubric as closely as possible.
+
+Do NOT invent a different project, architecture, feature set, or technology stack when the assignment already specifies one.
+
+Do NOT simply create a superficial demo. Build the system as an actual working software-engineering project.
+
+---
+
+# 1. IMPLEMENT THE ENTIRE ASSIGNMENT, NOT JUST A DEMO
+
+Build the project end-to-end.
+
+The implementation should ultimately cover all applicable parts of the assignment, including:
+
+* Frontend
+* Backend
+* Database
+* Redis/cache/rate limiting
+* AI/triage abstraction and providers
+* Testing
+* Dockerfiles
+* Docker Compose
+* Kubernetes
+* HPA/VPA
+* CI/CD
+* Security
+* Git/repository structure
+* Documentation
+* Evidence/supporting scripts
+
+Use the exact requirements, constraints, endpoint contracts, repository layout, rubric, and deliverables from the PDF.
+
+Do not intentionally skip difficult requirements unless there is a genuine technical blocker.
+
+If something cannot be fully implemented in the current environment, implement as much as possible and clearly document what remains and why.
+
+---
+
+# 2. IMPORTANT: THE ASSIGNMENT PDF IS THE SOURCE OF TRUTH
+
+Do not restate the assignment to me.
+
+Instead, use the PDF as your specification and translate it into implementation.
+
+Before coding:
+
+1. Read the entire PDF.
+2. Extract the requirements internally.
+3. Map the requirements to files/components you will create.
+4. Identify dependencies between components.
+5. Build in a logical order.
+6. Continuously compare the implementation against the rubric.
+
+Do not silently replace an assignment requirement with your own preferred implementation.
+
+If the assignment allows multiple alternatives, choose one sensible option and document the decision where required.
+
+---
+
+# 3. BUILD THE PROJECT IN LAYERS
+
+Do not generate the entire codebase blindly in one pass.
+
+Build and verify it in stages:
+
+## Stage 1 — Repository foundation
+
+Create the required repository structure.
+
+Set up:
+
+* Backend project
+* Frontend project
+* Documentation directories
+* Testing directories
+* Docker-related files
+* Kubernetes directories
+* GitHub Actions directories
+* Scripts
+* Configuration files
+
+Keep the structure aligned with the assignment's required repository layout.
+
+---
+
+## Stage 2 — Backend foundation
+
+Implement the backend architecture first.
+
+Respect the required separation between:
+
+* routes
+* services
+* repositories
+* providers
+
+Do not put database queries directly inside routes.
+
+Do not put business logic inside HTTP routes.
+
+Keep responsibilities clean and testable.
+
+Implement the API contract from the assignment exactly.
+
+Use appropriate validation and HTTP status codes.
+
+---
+
+## Stage 3 — Database
+
+Implement PostgreSQL and the required schema.
+
+Use migrations rather than creating schema during application startup.
+
+Implement:
+
+* models
+* migrations
+* repositories
+* indexes
+* seed data
+* idempotent seed behavior
+* persistence
+
+Verify database operations independently before integrating the rest of the system.
+
+---
+
+## Stage 4 — AI/Triage abstraction
+
+Implement the provider abstraction before tightly coupling the backend to a particular AI provider.
+
+The application should depend on the provider interface rather than directly depending on one specific LLM.
+
+Implement the providers required by the assignment.
+
+Make the deterministic provider usable for testing.
+
+Make fallback behavior deterministic and testable.
+
+The application must continue functioning when the external LLM fails.
+
+Do not make the entire application dependent on having an API key during normal development or CI testing.
+
+---
+
+## Stage 5 — Redis
+
+Implement the Redis functionality required by the assignment.
+
+Keep the two Redis responsibilities logically separated in the code:
+
+1. Caching
+2. Distributed rate limiting
+
+Make cache behavior observable through the API where required.
+
+Implement invalidation where required.
+
+Make the rate limiter distributed rather than process-local.
+
+---
+
+## Stage 6 — Frontend
+
+Build the complete frontend against the backend API.
+
+Do not create a fake frontend using hardcoded data.
+
+The frontend should consume the real backend endpoints.
+
+Implement:
+
+* submission flow
+* validation
+* loading states
+* API error handling
+* dashboard
+* filters
+* pagination
+* status changes
+* statistics
+* cache status
+* provider information where required
+
+Use the backend contract/OpenAPI rather than independently inventing API types.
+
+---
+
+## Stage 7 — Docker and Compose
+
+Containerize the complete system.
+
+Implement the Docker requirements from the assignment rather than creating generic Dockerfiles.
+
+Pay particular attention to:
+
+* multi-stage builds
+* image size
+* non-root execution
+* pinned images
+* correct dependency caching
+* health checks
+* environment configuration
+* networks
+* volumes
+* service dependencies
+* development vs production Compose differences
+
+Verify the complete system using Docker Compose before moving to Kubernetes.
+
+---
+
+# 4. DO NOT USE FAKE IMPLEMENTATIONS WHERE THE ASSIGNMENT EXPECTS REAL BEHAVIOR
+
+Avoid placeholders such as:
+
+```text
+TODO
+implement later
+fake response
+hardcoded statistics
+mock database
+fake Kubernetes deployment
+fake CI pipeline
+```
+
+unless the assignment explicitly calls for a simulated provider or test double.
+
+The system should actually work.
+
+For example:
+
+* The dashboard should query the backend.
+* The backend should query the database.
+* The AI provider should actually be behind the provider interface.
+* Redis should actually perform caching/rate limiting.
+* Docker Compose should actually run the services.
+* Kubernetes manifests should be deployable.
+* CI workflows should actually execute meaningful checks.
+
+---
+
+# 5. KEEP THE IMPLEMENTATION WITHIN THE ASSIGNMENT'S SCOPE
+
+Do NOT turn this into a giant commercial application.
+
+Do not add unnecessary features such as:
+
+* authentication systems not required by the assignment
+* complicated user-management systems
+* payment systems
+* unnecessary microservices
+* unnecessary messaging systems
+* unnecessary frontend frameworks
+* unnecessary cloud infrastructure
+* unrelated analytics
+* unnecessary AI agents
+* unnecessary third-party services
+
+The goal is:
+
+> Complete the assignment thoroughly, cleanly, and reliably.
+
+Not:
+
+> Build as many features as possible.
+
+Prefer the simplest implementation that satisfies the documented requirement.
+
+---
+
+# 6. FOLLOW THE ASSIGNMENT'S TECHNOLOGY CHOICES
+
+When the PDF specifies a technology, use it unless the assignment explicitly permits alternatives.
+
+Do not replace required technologies merely because another technology is easier.
+
+If the assignment permits alternatives, choose the simplest defensible option and document the decision.
+
+Do not introduce additional frameworks without a strong reason.
+
+---
+
+# 7. CONFIGURATION AND SECRETS
+
+Never hardcode:
+
+* API keys
+* passwords
+* tokens
+* database credentials
+* environment-specific URLs
+
+Do not create committed files containing real secrets.
+
+Use the configuration mechanisms required by the assignment.
+
+Make sure `.env.example` contains placeholders while `.env` remains ignored.
+
+Also ensure secrets cannot accidentally enter:
+
+* Git history
+* Docker images
+* frontend bundles
+* logs
+* Kubernetes committed manifests
+
+---
+
+# 8. FRONTEND RUNTIME CONFIGURATION
+
+Pay special attention to the assignment's build-once-deploy-many requirement.
+
+Do not solve the frontend API URL using a build-time hardcoded localhost value.
+
+Implement one of the approaches explicitly allowed by the assignment.
+
+Make sure the final frontend image can be deployed in different environments without rebuilding the application solely because the backend URL changed.
+
+Document the selected approach in the required ADR.
+
+---
+
+# 9. ERROR HANDLING MUST BE REAL
+
+Do not hide backend errors behind generic frontend messages.
+
+Respect the API contract.
+
+Particularly preserve meaningful status codes such as:
+
+* validation errors
+* not found
+* rate limiting
+* invalid state transitions
+* dependency/readiness failures
+
+Where the assignment explicitly requires the server's error message to reach the user, implement that behavior.
+
+---
+
+# 10. TEST WHILE BUILDING
+
+Do not wait until the entire project is finished before testing.
+
+After each major layer:
+
+1. Run its tests.
+2. Fix errors.
+3. Integrate it.
+4. Test again.
+
+Write meaningful tests rather than tests that merely execute code.
+
+Pay special attention to:
+
+* backend validation
+* state transitions
+* AI fallback
+* malformed AI output
+* timeout/retry behavior
+* prompt injection
+* Redis caching
+* rate limiting
+* API endpoints
+* frontend components
+* integration behavior
+
+Use the deterministic/simulated AI provider for CI wherever the assignment requires deterministic behavior.
+
+---
+
+# 11. KEEP CI DETERMINISTIC
+
+Do not make CI depend on a live probabilistic LLM unless the assignment explicitly requires it.
+
+Use the deterministic provider/test doubles described by the assignment.
+
+Tests must produce repeatable results.
+
+Do not solve flaky tests by adding arbitrary sleeps or retrying tests until they pass.
+
+---
+
+# 12. DOCKER AND KUBERNETES MUST REFLECT REAL DEPLOYMENT
+
+Do not create Kubernetes YAML merely to satisfy file-existence checks.
+
+The manifests should be internally consistent and deployable.
+
+Verify:
+
+* namespaces
+* deployments
+* StatefulSet
+* PVCs
+* services
+* ingress
+* probes
+* resource requests/limits
+* ConfigMaps
+* Secrets
+* HPA
+* VPA
+* PDB
+* Kustomize configuration
+
+Use the correct object type and configuration required by the assignment.
+
+---
+
+# 13. CI/CD MUST BE FUNCTIONAL
+
+Create the required workflows from the assignment.
+
+Do not make workflows that simply contain placeholder commands.
+
+The workflows should actually:
+
+* lint
+* type-check
+* test
+* build
+* scan
+* validate manifests
+* perform integration checks
+* publish when appropriate
+* deploy when appropriate
+* use correct job dependencies
+* use secure credentials
+* use immutable deployment references
+
+Ensure the workflow logic follows the branch/event requirements in the assignment.
+
+---
+
+# 14. DOCUMENTATION MUST MATCH THE REAL IMPLEMENTATION
+
+Do not write generic documentation that claims features that do not exist.
+
+After implementation, inspect the actual repository and make documentation match it.
+
+Create the required:
+
+* README
+* ADRs
+* RUNBOOK
+* ENGINEERING-NOTES
+* TRIAGE documentation
+* AI usage documentation
+* evidence structure
+
+For engineering notes, answer the assignment's questions using the actual implementation.
+
+Where the assignment requires file/line references, use real file and line references from the finished repository.
+
+---
+
+# 15. ADRs MUST DOCUMENT REAL DECISIONS
+
+Do not create meaningless ADRs.
+
+Each ADR should explain:
+
+* Context
+* Problem
+* Decision
+* Alternatives considered
+* Consequences
+
+Base the ADRs on the actual implementation.
+
+Do not claim that an approach was chosen if the code does something else.
+
+---
+
+# 16. EVIDENCE
+
+The assignment awards marks for demonstrated behavior.
+
+Whenever practical, create a clear way to demonstrate the required behavior.
+
+Examples include:
+
+* tests
+* commands
+* logs
+* screenshots
+* generated output
+* Kubernetes output
+* CI results
+
+Do not fabricate evidence.
+
+If something has not actually been demonstrated, do not claim that it has.
+
+Create the required evidence directory and organize evidence clearly.
+
+---
+
+# 17. SECURITY REVIEW BEFORE FINISHING
+
+Before considering the project complete, search the repository for:
+
+* API keys
+* passwords
+* tokens
+* `.env`
+* localhost references
+* unpinned images
+* inappropriate exposed ports
+* accidental secrets
+* insecure Kubernetes manifests
+
+Check Git history as well, because the assignment includes deductions for secrets committed in history.
+
+---
+
+# 18. FINAL RUBRIC AUDIT
+
+Before saying the project is finished, perform a systematic audit against the assignment rubric.
+
+Create an internal checklist covering every rubric item.
+
+For each item determine:
+
+```text
+Implemented
+Partially implemented
+Missing
+Needs evidence
+```
+
+Do not simply assume that because the application runs, the assignment is complete.
+
+Pay particular attention to requirements that are easy to forget:
+
+* Git collaboration requirements
+* exact API behavior
+* cache headers
+* fallback
+* AI content caching
+* request IDs
+* graceful shutdown
+* network isolation
+* runtime frontend configuration
+* persistence
+* probes
+* HPA
+* VPA
+* CI gating
+* SHA deployment
+* rollback
+* documentation
+* evidence
+
+---
+
+# 19. FINAL VALIDATION
+
+At the end, run the project's available validation tools and tests.
+
+Use the assignment's submission-checking script if available.
+
+Verify that:
+
+1. A clean clone can be set up.
+2. The documented quickstart works.
+3. Docker Compose starts successfully.
+4. The frontend can communicate with the backend.
+5. The backend can communicate with PostgreSQL and Redis.
+6. The main complaint flow works end-to-end.
+7. AI fallback works.
+8. Database persistence works.
+9. Cache behavior works.
+10. Rate limiting works.
+11. Tests pass.
+12. Docker images build.
+13. Kubernetes manifests validate.
+14. Kubernetes deployment works where the environment supports it.
+15. CI workflows are syntactically valid.
+16. Documentation reflects reality.
+
+---
+
+# 20. WORKING STYLE
+
+Use this workflow:
+
+```text
+Read requirement
+      ↓
+Design the smallest correct implementation
+      ↓
+Implement
+      ↓
+Test
+      ↓
+Integrate
+      ↓
+Verify against rubric
+      ↓
+Move to next requirement
+```
+
+Do not continuously rewrite working code just to make it more sophisticated.
+
+Prefer:
+
+> simple + correct + testable
+
+over:
+
+> complicated + impressive-looking + fragile
+
+---
+
+# 21. IF YOU ENCOUNTER A BLOCKER
+
+Do not silently work around a requirement.
+
+If something cannot be completed because of:
+
+* unavailable external service
+* missing credentials
+* unavailable Kubernetes capability
+* environment limitation
+* dependency issue
+* platform limitation
+
+then:
+
+1. Implement everything that can be implemented locally.
+2. Create a deterministic alternative/test path where appropriate.
+3. Clearly document the blocker.
+4. Do not fake successful execution.
+5. Continue implementing the remaining assignment.
+
+---
+
+# 22. IMPORTANT: PRESERVE EXISTING WORK
+
+Before modifying an existing repository:
+
+* inspect the existing files
+* understand the current architecture
+* identify what already works
+* avoid unnecessarily deleting working code
+* avoid overwriting configuration blindly
+
+If the repository is empty, create the project from scratch according to the assignment.
+
+If files already exist, improve them rather than rebuilding everything unnecessarily.
+
+---
+
+# 23. FINAL OUTPUT FROM YOU
+
+When you have finished implementation, give me a concise final report containing:
+
+### Implementation status
+
+What was completed.
+
+### Important files
+
+The major files/directories created or modified.
+
+### How to run
+
+The exact commands needed to run the project locally.
+
+### Testing
+
+Which tests were executed and their result.
+
+### Docker
+
+How to start the Compose environment.
+
+### Kubernetes
+
+How to deploy it and which parts were actually verified.
+
+### CI/CD
+
+Which workflows were created and what they do.
+
+### Remaining limitations
+
+Anything that could not be fully verified or implemented.
+
+### Rubric audit
+
+A concise checklist showing which assignment areas are complete, partial, or require manual evidence.
+
+Do not claim something was successfully tested if you did not actually test it.
+
+---
+
+# MOST IMPORTANT INSTRUCTION
+
+The attached assignment PDF is the specification.
+
+Build the **complete project required by that specification**, not a simplified tutorial version.
+
+At the same time, do not add unnecessary functionality outside the assignment.
+
+Aim for a repository that is:
+
+* working
+* clean
+* maintainable
+* testable
+* secure
+* reproducible
+* demonstrable
+* aligned with the rubric
+* understandable by a student who must defend it in a viva
+
+Before declaring completion, perform a final requirement-by-requirement audit against the PDF.

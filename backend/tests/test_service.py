@@ -1,0 +1,148 @@
+"""Tests for the complaint service — especially triage fallback.
+
+This test is REQUIRED by the assignment:
+  Given a provider that always raises, POST /api/complaints still returns 201
+  and triaged_by == "rules:fallback".
+"""
+
+import pytest
+import pytest_asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from app.models import Category, ComplaintCreate, Priority, TriageResult
+from app.providers.triage.simulated import SimulatedTriage
+from app.services.complaint_service import ComplaintService
+
+
+class TestTriageFallback:
+    """Test that the system falls back to rules when the primary provider fails."""
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_provider_failure(self):
+        """REQUIRED TEST: given a provider that always raises, POST still succeeds
+        and triaged_by == 'rules:fallback'.
+        """
+        # Create a provider that always raises
+        failing_provider = SimulatedTriage(fail=True)
+
+        # Mock the session and repository
+        mock_session = AsyncMock()
+        mock_session.flush = AsyncMock()
+        mock_session.commit = AsyncMock()
+        mock_session.refresh = AsyncMock()
+        mock_session.execute = AsyncMock()
+
+        service = ComplaintService(
+            session=mock_session,
+            provider=failing_provider,
+        )
+
+        # Mock the repository's create method
+        mock_complaint = MagicMock()
+        mock_complaint.id = "test-id"
+        mock_complaint.text = "Test complaint text for fallback"
+        mock_complaint.location = "Test Location"
+        mock_complaint.reporter_contact = None
+        mock_complaint.category = "water"
+        mock_complaint.priority = "normal"
+        mock_complaint.status = "open"
+        mock_complaint.ai_summary = "Test complaint text for fallback"
+        mock_complaint.triaged_by = "rules:fallback"
+        mock_complaint.triage_latency_ms = 100
+        mock_complaint.created_at = MagicMock()
+        mock_complaint.created_at.isoformat.return_value = "2026-01-01T00:00:00"
+        mock_complaint.updated_at = MagicMock()
+        mock_complaint.updated_at.isoformat.return_value = "2026-01-01T00:00:00"
+
+        with patch.object(service._repo, "create", return_value=mock_complaint) as mock_create:
+            with patch("app.services.complaint_service.get_cached_triage", return_value=None):
+                with patch("app.services.complaint_service.set_cached_triage"):
+                    with patch("app.services.complaint_service.invalidate_stats_cache"):
+                        data = ComplaintCreate(
+                            text="Test complaint text for fallback testing purposes",
+                            location="Test Location Here",
+                        )
+
+                        result = await service.create_complaint(data)
+
+            # Verify the result indicates fallback was used
+            # The service should have called the repo with triaged_by="rules:fallback"
+            assert mock_create.call_args is not None
+            assert mock_create.call_args.kwargs["triaged_by"] == "rules:fallback"
+            assert result["triaged_by"] == "rules:fallback"
+
+    @pytest.mark.asyncio
+    async def test_triage_with_resilience_timeout(self):
+        """Test that timeout triggers fallback."""
+
+        class SlowProvider:
+            name = "slow"
+
+            async def triage(self, text, location):
+                import asyncio
+                await asyncio.sleep(15)  # Exceeds 10s timeout
+                return TriageResult(
+                    category=Category.OTHER,
+                    priority=Priority.NORMAL,
+                    summary="should not reach here",
+                    confidence=0.5,
+                )
+
+        mock_session = AsyncMock()
+        service = ComplaintService(
+            session=mock_session,
+            provider=SlowProvider(),
+        )
+
+        result, triaged_by, latency = await service._triage_with_resilience(
+            "Water pipe burst on main road", "Street 1, Lahore"
+        )
+
+        assert triaged_by == "rules:fallback"
+        assert isinstance(result, TriageResult)
+
+    @pytest.mark.asyncio
+    async def test_service_crud_and_status(self):
+        """Test get_complaint, list_complaints, and update_status state machine in service."""
+        from app.models import Status
+        import uuid
+
+        mock_session = AsyncMock()
+        service = ComplaintService(session=mock_session, provider=AsyncMock())
+
+        # Test get_complaint None
+        with patch.object(service._repo, "get_by_id", return_value=None):
+            assert await service.get_complaint(uuid.uuid4()) is None
+
+        # Test list_complaints
+        with patch.object(service._repo, "list_complaints", return_value=([], 0)):
+            res = await service.list_complaints(page=1, page_size=10)
+            assert res["total"] == 0
+            assert res["items"] == []
+
+        # Test update_status invalid transition
+        mock_c = MagicMock()
+        mock_c.status = "open"
+        with patch.object(service._repo, "get_by_id", return_value=mock_c):
+            updated, err = await service.update_status(uuid.uuid4(), Status.RESOLVED)
+            assert updated is None
+            assert "Cannot transition" in (err or "")
+
+        # Test update_status valid transition
+        with patch.object(service._repo, "get_by_id", return_value=mock_c):
+            with patch.object(service._repo, "update_status", return_value=mock_c):
+                with patch("app.services.complaint_service.invalidate_stats_cache"):
+                    updated, err = await service.update_status(uuid.uuid4(), Status.IN_PROGRESS)
+                    assert err is None
+                    assert updated is not None
+
+        # Test stats
+        with patch("app.services.complaint_service.get_cached_stats", return_value=({"total": 5}, True)):
+            stats, is_hit = await service.get_stats()
+            assert is_hit is True
+            assert stats["total"] == 5
+
+        # Test provider info
+        with patch.object(service._repo, "get_recent_triage_outcomes", return_value=[]):
+            info = await service.get_provider_info()
+            assert "active_provider" in info

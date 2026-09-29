@@ -1,0 +1,24 @@
+# VPA in recommender mode (updateMode: "Off") — recommend only, do not evict
+# HPA scaling on CPU and VPA in Auto mode adjusting CPU requests act on the
+# same signal and fight. Recommender mode plus a human decision is industrial practice.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: backend-vpa
+  namespace: civicpulse
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  updatePolicy:
+    updateMode: "Off"  # recommend only — do not evict
+  resourcePolicy:
+    containerPolicies:
+      - containerName: backend
+        minAllowed:
+          cpu: 50m
+          memory: 64Mi
+        maxAllowed:
+          cpu: 1
+          memory: 1Gi
