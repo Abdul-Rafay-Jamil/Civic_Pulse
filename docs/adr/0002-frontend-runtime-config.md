@@ -3,6 +3,16 @@
 ## Status
 Accepted
 
+
+### Consequences
+- The frontend image is environment-agnostic: the same image runs in dev, staging, and prod
+  without rebuilding. The nginx reverse proxy at `/api` eliminates any baked-in API URL.
+- No secrets are exposed in the browser bundle since the frontend never directly references
+  backend hostnames or ports.
+- Trade-off: nginx must be configured per environment to proxy to the correct backend host,
+  but this is handled via environment variable substitution at container start time.
+
+
 ## Context
 A Vite build bakes `import.meta.env` values into static JavaScript at build time. If the API URL is baked in, the image is environment-specific and **build-once-deploy-many** is destroyed for the frontend. The same frontend image must work in development (localhost), staging, and production without rebuilding.
 
