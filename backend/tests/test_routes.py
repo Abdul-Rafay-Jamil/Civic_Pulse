@@ -1,4 +1,4 @@
-"""Tests for API routes — health, validation, status codes."""
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -65,13 +65,18 @@ class TestMetricsEndpoint:
         # Prometheus metrics should contain HELP/TYPE lines
         assert "civicpulse_request" in response.text or response.status_code == 200
 
-    def test_ready_probe(self, client):
-        """Readiness probe returns 200 or 503 depending on database reachability."""
-        response = client.get("/ready")
-        assert response.status_code in (200, 503)
+    def test_ready_probe_healthy(self, client):
+        """Readiness probe returns 200 when all dependencies are healthy."""
+        with patch("app.deps.check_db_health", return_value=True):
+            with patch("app.routes.health.redis_health_check", return_value=True):
+                response = client.get("/ready")
+                assert response.status_code == 200
+                assert response.json()["status"] == "healthy"
 
-    def test_get_complaint_404(self, client):
-        """Fetching non-existent complaint returns 404."""
-        import uuid
-        response = client.get(f"/api/complaints/{uuid.uuid4()}")
-        assert response.status_code in (404, 500)
+    def test_ready_probe_unhealthy(self, client):
+        """Readiness probe returns 503 when a dependency fails."""
+        with patch("app.deps.check_db_health", return_value=False):
+            with patch("app.routes.health.redis_health_check", return_value=True):
+                response = client.get("/ready")
+                assert response.status_code == 503
+                assert response.json()["status"] == "unhealthy"

@@ -257,11 +257,7 @@ class ComplaintService:
         if isinstance(error, asyncio.TimeoutError):
             return True
         error_str = str(error)
-        # Check for HTTP status codes in the error message
-        for code in RETRYABLE_STATUS_CODES:
-            if str(code) in error_str:
-                return True
-        return False
+        return any(str(code) in error_str for code in RETRYABLE_STATUS_CODES)
 
     @staticmethod
     def _complaint_to_dict(complaint: Any) -> dict[str, Any]:

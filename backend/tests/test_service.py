@@ -100,3 +100,49 @@ class TestTriageFallback:
 
         assert triaged_by == "rules:fallback"
         assert isinstance(result, TriageResult)
+
+    @pytest.mark.asyncio
+    async def test_service_crud_and_status(self):
+        """Test get_complaint, list_complaints, and update_status state machine in service."""
+        from app.models import Status
+        import uuid
+
+        mock_session = AsyncMock()
+        service = ComplaintService(session=mock_session, provider=AsyncMock())
+
+        # Test get_complaint None
+        with patch.object(service._repo, "get_by_id", return_value=None):
+            assert await service.get_complaint(uuid.uuid4()) is None
+
+        # Test list_complaints
+        with patch.object(service._repo, "list_complaints", return_value=([], 0)):
+            res = await service.list_complaints(page=1, page_size=10)
+            assert res["total"] == 0
+            assert res["items"] == []
+
+        # Test update_status invalid transition
+        mock_c = MagicMock()
+        mock_c.status = "open"
+        with patch.object(service._repo, "get_by_id", return_value=mock_c):
+            updated, err = await service.update_status(uuid.uuid4(), Status.RESOLVED)
+            assert updated is None
+            assert "Cannot transition" in (err or "")
+
+        # Test update_status valid transition
+        with patch.object(service._repo, "get_by_id", return_value=mock_c):
+            with patch.object(service._repo, "update_status", return_value=mock_c):
+                with patch("app.services.complaint_service.invalidate_stats_cache"):
+                    updated, err = await service.update_status(uuid.uuid4(), Status.IN_PROGRESS)
+                    assert err is None
+                    assert updated is not None
+
+        # Test stats
+        with patch("app.services.complaint_service.get_cached_stats", return_value=({"total": 5}, True)):
+            stats, is_hit = await service.get_stats()
+            assert is_hit is True
+            assert stats["total"] == 5
+
+        # Test provider info
+        with patch.object(service._repo, "get_recent_triage_outcomes", return_value=[]):
+            info = await service.get_provider_info()
+            assert "active_provider" in info

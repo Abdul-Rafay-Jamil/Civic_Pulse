@@ -8,7 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class Category(str, enum.Enum):
+class Category(enum.StrEnum):
     """Complaint category — assigned by triage."""
 
     WATER = "water"
@@ -19,7 +19,7 @@ class Category(str, enum.Enum):
     OTHER = "other"
 
 
-class Priority(str, enum.Enum):
+class Priority(enum.StrEnum):
     """Complaint priority — assigned by triage."""
 
     HIGH = "high"
@@ -27,7 +27,7 @@ class Priority(str, enum.Enum):
     LOW = "low"
 
 
-class Status(str, enum.Enum):
+class Status(enum.StrEnum):
     """Complaint lifecycle status."""
 
     OPEN = "open"
