@@ -70,7 +70,7 @@ class RuleBasedTriage:
         summary = self._generate_summary(text, category)
 
         # Confidence is lower for rule-based since it's just keyword matching
-        confidence = 0.6 if category != Category.OTHER else 0.3
+        confidence = 0.75 if category != Category.OTHER else 0.4  # Partner A: higher confidence for keyword matches
 
         return TriageResult(
             category=category,
