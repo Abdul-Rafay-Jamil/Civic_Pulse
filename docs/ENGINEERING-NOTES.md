@@ -1,6 +1,14 @@
 # Engineering Notes
 
+Resolving the Issue #5
+### HPA and VPA Conflict
+VPA runs in `Off` (recommender) mode because running it in `Auto` alongside HPA creates a
+feedback loop: VPA raises CPU requests → computed utilization drops (usage ÷ request) → HPA
+scales in → per-pod load rises → VPA raises requests again. The industry practice is to use
+VPA recommendations to inform a human decision about resource requests, then let HPA handle
+horizontal scaling based on those fixed requests.
 
+Resolving the Issue #3
 ### Redis AOF Volume Justification
 Redis AOF persistence is configured on a named volume (`redisdata`). Although cache data
 can theoretically be rebuilt from the database, the AOF volume preserves the rate limiter
@@ -9,7 +17,7 @@ a burst of LLM calls exhausts the free-tier quota. The triage content-hash cache
 also benefits: cold-starting the cache after a restart would cause duplicate LLM calls for
 recently triaged complaints.
 
-
+Resolving the Issue #1
 ### State Machine Transition Table
 The explicit transition table in `backend/app/models.py` maps (current_status, target_status)
 pairs to boolean validity. Invalid transitions return 409 Conflict with a message naming the
