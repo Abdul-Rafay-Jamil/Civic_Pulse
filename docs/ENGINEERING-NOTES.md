@@ -1,5 +1,16 @@
 # Engineering Notes
 
+### Merge Conflict Resolution — Rule-Based Confidence
+
+We resolved the merge conflict in `backend/app/providers/triage/rules.py` (line 73) by
+settling on a confidence of 0.65 for matched categories and 0.35 for unmatched. Partner A's
+value of 0.75 overstated the accuracy of keyword matching, which cannot account for context
+or ambiguity in Urdu-influenced English complaints. Partner B's value of 0.50 was too
+conservative and would have caused the stats dashboard to underreport classification
+reliability. The compromise of 0.65 reflects that keyword matching is reliable for
+single-category complaints but less so for multi-category edge cases.
+
+
 Resolving the Issue #5
 ### HPA and VPA Conflict
 VPA runs in `Off` (recommender) mode because running it in `Auto` alongside HPA creates a
