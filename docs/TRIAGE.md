@@ -1,5 +1,14 @@
 # Triage System Documentation
 
+
+### Fallback Chain
+When the primary LLM provider (Groq/Ollama) fails due to timeout (10s hard cap),
+rate limiting (429), or server error (5xx), the system retries once with jitter.
+If the retry also fails, it falls back to RuleBasedTriage and records
+`triaged_by = "rules:fallback"`. A WARNING log is emitted with the complaint ID,
+provider name, and error class. The citizen never sees a 500.
+
+
 ## Overview
 
 CivicPulse's triage system classifies citizen complaints into:
