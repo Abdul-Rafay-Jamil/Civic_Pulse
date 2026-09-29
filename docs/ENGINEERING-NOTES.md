@@ -1,6 +1,15 @@
 # Engineering Notes
 
 
+### Redis AOF Volume Justification
+Redis AOF persistence is configured on a named volume (`redisdata`). Although cache data
+can theoretically be rebuilt from the database, the AOF volume preserves the rate limiter
+counters across container restarts, preventing a window where the rate limit resets and
+a burst of LLM calls exhausts the free-tier quota. The triage content-hash cache (24h TTL)
+also benefits: cold-starting the cache after a restart would cause duplicate LLM calls for
+recently triaged complaints.
+
+
 ### State Machine Transition Table
 The explicit transition table in `backend/app/models.py` maps (current_status, target_status)
 pairs to boolean validity. Invalid transitions return 409 Conflict with a message naming the
